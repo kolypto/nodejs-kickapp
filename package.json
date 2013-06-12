@@ -1,0 +1,37 @@
+{
+  "name": "kickapp",
+  "description": "Application architecture framework with pluggable services",
+  "version": "0.0.1",
+  
+  "author": "kolypto <kolypto@gmail.com>",
+  "license": "MIT",
+  "maintainers": [
+    "kolypto <kolypto@gmail.com>"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:kolypto/nodejs-kickapp.git"
+  },
+  
+  "main": "./lib/index",
+  "keywords": [
+    "application",
+    "services",
+    "architecture"
+  ],
+  
+  "dependencies": {
+    "async": "0.2.x",
+    "underscore": "1.4.x"
+  },
+  "devDependencies": {
+    "vows": "0.7.x"
+  },
+  "engines": {
+    "node": ">= 0.9.0"
+  },
+  
+  "scripts": {
+    "test": "vows tests/*-test.js tests/**/*-test.js --spec"
+  }
+}
