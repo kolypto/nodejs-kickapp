@@ -76,7 +76,7 @@ Here's a naive example of a service:
 
 ```js
 var DbService = function(app, options){
-    this.db = new DB(options.host); //
+    this.db = new DB(options.host);
 };
 
 DbService.prototype.start = function(callback){
@@ -112,3 +112,6 @@ It also defines the following methods:
 * `getService(name)` allows you to get a `Service` by name. Dot-notation is supported to get child services
 
 Internally, an `Application` is a pure `ServiceContainer`, augmented with the constructor function.
+
+Each Service you define is wrapped into a ServiceContainer when you use the `addChild()` method. The Service becomes
+a property of the ServiceContainer, and the Service gets a reference to its wrapper: both are named `service`.
