@@ -18,11 +18,11 @@ var Environment = function(){
         this.name = options.name;
     };
     Service.prototype.start = function(finish){
-        events.push('+' + this.name);
+        events.push('+' + this.service.name);
         finish();
     };
     Service.prototype.stop = function(finish){
-        events.push('-' + this.name);
+        events.push('-' + this.service.name);
         finish();
     };
 
