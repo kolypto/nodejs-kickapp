@@ -1,7 +1,7 @@
 {
   "name": "kickapp",
   "description": "Application architecture framework with pluggable services",
-  "version": "0.0.3",
+  "version": "0.0.4",
   
   "author": "kolypto <kolypto@gmail.com>",
   "license": "MIT",

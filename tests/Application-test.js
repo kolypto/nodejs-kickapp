@@ -57,6 +57,12 @@ vows.describe('Application') // test suite
                     [1,0,2,0,0]
                 );
             },
+            'getDescendants() work': function(topic){
+                assert.deepEqual(
+                    topic.app.getDescendants().map(function(svc){ return svc.service.getName(); }),
+                    ['s1', 's1.s11', 's1.s11.s111', 's1.s11.s112', 's2']
+                );
+            },
 
             // child scope
             'and started': {

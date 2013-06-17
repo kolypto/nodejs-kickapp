@@ -111,6 +111,8 @@ It also defines the following methods:
 * `addChild(name, Service, options)` wrapper that creates a child `Service(app, options)`, wraps it with a
 `ServiceContainer` and maintains the parent-child relationship.
 * `getService(name)` allows you to get a `Service` by name. Dot-notation is supported to get child services
+* `getName()` returns the qualified service name
+* `getDescendants()` returns the list of all service descendants
 
 Internally, an `Application` is a pure `ServiceContainer`, augmented with the constructor function.
 
