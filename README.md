@@ -39,6 +39,7 @@ var services = require('./services');
 
 // Add child services
 app.addChild('db', services.DbService, { host: 'localhost' });
+app.addChild('db.methods', services.DbMethodsService, {}); // use dot notation for hierarchical services
 
 // Start them all
 app.start(function(err){

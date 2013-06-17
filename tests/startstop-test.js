@@ -31,7 +31,7 @@ var Environment = function(){
     var s2 = this.app.addChild('s2', Service, {name: 's2'});
     var s11 = s1.addChild('s11', Service, {name: 's11'});
     var s111 = s11.addChild('s111', Service, {name: 's111'});
-    var s112 = s11.addChild('s112', Service, {name: 's112'});
+    this.app.addChild('s1.s11.s112', Service, {name: 's112'}); // hierarchical
 };
 
 vows.describe('Application') // test suite
