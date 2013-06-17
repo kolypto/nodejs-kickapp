@@ -96,6 +96,25 @@ vows.describe('Application') // test suite
                     }
                 }
             }
+        },
+        'when a service fails to start': {
+            topic: function(){
+                var app = new kickapp.Application(function(){});
+                var svc = app.addChild('test', function(app, options){
+                    this.start = function(finish){
+                        finish('Failed');
+                    };
+                    this.stop = function(finish){
+                        finish('Failed');
+                    };
+                }, {});
+                return app;
+            },
+            'an error should be emitted on start': function(topic){
+                topic.start(function(e){
+                    assert.equal(e, 'Failed');
+                });
+            }
         }
     })
     //.run();
