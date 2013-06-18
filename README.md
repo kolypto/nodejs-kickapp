@@ -150,6 +150,9 @@ by name which coincides with the qualified name of the service.
     Default: `true`
 * `propagate`, when `true`, propagates all log events to parent services' loggers, up and up,
     right to the final root logger. This makes all loggers installed on parent services log the same event as well.
+    
+    The idea originates from python's [logging](http://docs.python.org/3.3/library/logging.html#logging.Logger.propagate)
+    facility.
 * `propagate_root` is the name of the root logger which catches _all_ events of the child services.
 
     The root logger is not created automatically: you need to make it in advance.
@@ -164,7 +167,8 @@ var app = new kickapp.Application(function(){
     var cfg = this.config = {
         loggers: {
             root: {
-                console: { level: 'silly', colorize: true, timestamp: true }, // only root logger prints to console
+                // only root logger prints to console
+                console: { level: 'silly', colorize: true, timestamp: true },
                 file: { level: 'warn', filename: 'logs/app.log', json: false }
             },
             service1: {
@@ -180,15 +184,16 @@ var app = new kickapp.Application(function(){
     this.addChild('service1', ... );
     this.addChild('service1.child', ... );
 
-    // Create the root logger
-    this.log = winston.loggers.add('root', cfg.loggers.root); // Root logger for propagation
+    // Create the root logger for propagation
+    this.log = winston.loggers.add('root', cfg.loggers.root);
 
     // Set up services' logging
     this.winston({
         logger_config: function(service_name, service){ // logger configurator
-            return cfg.loggers[service_name]; // return if available. Falsy value will pick defaults instead
+            return cfg.loggers[service_name]; // get the config. 
+            // `undefined` will make winston() use the defaults
         },
-        propagate: true
+        propagate: true // yeat, propagate
     });
 
     // Now each of your services can start using `this.log` Logger object
