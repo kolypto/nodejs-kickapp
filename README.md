@@ -118,3 +118,79 @@ Internally, an `Application` is a pure `ServiceContainer`, augmented with the co
 
 Each Service you define is wrapped into a ServiceContainer when you use the `addChild()` method. The Service becomes
 a property of the ServiceContainer, and the Service gets a reference to its wrapper: both are named `service`.
+
+
+### Winston Integration
+KickApp can integrate with [winston](https://github.com/flatiron/winston) by creating a separate logger for each
+of your services.
+
+`ServiceContainer.winston(options)`, when called on the Application object, walks through all of your services and
+creates a `winston.Logger` on it. All loggers are created in a `winston.Container`, which allows you to fetch them
+by name which coincides with the qualified name of the service.
+
+`options` is an object with the following properties available:
+
+* `container` is the `winston.Container` to use for all created loggers. Defaults to `winston.loggers`
+* `logger_config` is a function which, given the service, returns a winston config for the logger:
+    see [Container.add](https://github.com/flatiron/winston#working-with-multiple-loggers-in-winston).
+
+    The function has the following footprint: `function(service_name: String, service: Service):Object?`.
+    It should return a config object, or `undefined` to have the defaults.
+
+    With the help of this you can have different log targets and levels for all of your services.
+* `levels` Allows to override the set of available log levels.
+    See [Logging Levels](https://github.com/flatiron/winston#logging-levels).
+* `service_log` is the name of the propery on your Service object which gets the Logger instance.
+    You can then call `.log()` method on it and all other stuff defined by winston.
+
+    Default: `'log'`
+* `decorate` is a function which alters the message before logging.
+    Give it a `true` to have a cute default: each message prefixed by the "[service name]".
+
+    Default: `true`
+* `propagate`, when `true`, propagates all log events to parent services' loggers, up and up,
+    right to the final root logger. This makes all loggers installed on parent services log the same event as well.
+* `propagate_root` is the name of the root logger which catches _all_ events of the child services.
+
+    The root logger is not created automatically: you need to make it in advance.
+
+    Default: `'root'`
+
+Example usage:
+
+```js
+var app = new kickapp.Application(function(){
+    // Keep your configs separate
+    var cfg = this.config = {
+        loggers: {
+            root: {
+                console: { level: 'silly', colorize: true, timestamp: true }, // only root logger prints to console
+                file: { level: 'warn', filename: 'logs/app.log', json: false }
+            },
+            service1: {
+                file: { level: 'debug', filename: 'logs/service1.log', json: false }
+            },
+            'service1.child': {
+                file: { silent: true }
+            }
+        }
+    };
+
+    // Init some services
+    this.addChild('service1', ... );
+    this.addChild('service1.child', ... );
+
+    // Create the root logger
+    this.log = winston.loggers.add('root', cfg.loggers.root); // Root logger for propagation
+
+    // Set up services' logging
+    this.winston({
+        logger_config: function(service_name, service){ // logger configurator
+            return cfg.loggers[service_name]; // return if available. Falsy value will pick defaults instead
+        },
+        propagate: true
+    });
+
+    // Now each of your services can start using `this.log` Logger object
+});
+```
