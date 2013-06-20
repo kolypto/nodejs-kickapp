@@ -106,8 +106,10 @@ A `ServiceContainer` is an object that wraps a `Service` along with its related 
 
 It also defines the following methods:
 
-* `start(callback)`, which launches the service itself and its child services
-* `stop(callback)`, which halts the service and its child services
+* `start(callback)`, which launches the service itself and its child services.
+    The service starts first, then the children are started recursively.
+* `stop(callback)`, which halts the service and its child services.
+    The children are stopped first, then the service stops.
 * `addChild(name, Service, options)` wrapper that creates a child `Service(app, options)`, wraps it with a
 `ServiceContainer` and maintains the parent-child relationship.
 * `getService(name)` allows you to get a `Service` by name. Dot-notation is supported to get child services
@@ -118,6 +120,13 @@ Internally, an `Application` is a pure `ServiceContainer`, augmented with the co
 
 Each Service you define is wrapped into a ServiceContainer when you use the `addChild()` method. The Service becomes
 a property of the ServiceContainer, and the Service gets a reference to its wrapper: both are named `service`.
+
+A `ServiceContainer` is an `EventEmitter` with the following events available:
+
+* `'start' (svc: Service)` - when the service is about to start.
+* `'started' (svc: Service)` - when the service is started, as well as all its children
+* `'stop' (svc: Service)` - when the service is about to stop
+* `'stopped' (svc: Service)` - when the service is stopped, as well as all its children
 
 
 ### Winston Integration

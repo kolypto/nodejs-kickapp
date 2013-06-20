@@ -16,6 +16,10 @@ var Environment = function(){
     // Custom service
     var Service = function(app, options){
         this.name = options.name;
+        this.service.on('start', function(svc){ events.push(svc.name + ':start'); });
+        this.service.on('started', function(svc){ events.push(svc.name + ':started'); });
+        this.service.on('stop', function(svc){ events.push(svc.name + ':stop'); });
+        this.service.on('stopped', function(svc){ events.push(svc.name + ':stopped'); });
     };
     Service.prototype.start = function(finish){
         events.push('+' + this.service.name);
@@ -72,7 +76,15 @@ vows.describe('Application') // test suite
                 },
 
                 'emitted events should match the set': function(topic){
-                    assert.deepEqual(topic.events, ['+s1', '+s11', '+s111', '+s112', '+s2']);
+                    assert.deepEqual(topic.events, [
+                        's1:start', '+s1',
+                            's11:start', '+s11',
+                                's111:start', '+s111', 's111:started',
+                                's112:start', '+s112', 's112:started',
+                            's11:started',
+                        's1:started',
+                        's2:start', '+s2', 's2:started'
+                    ]);
                 },
                 'all services are running': function(topic){
                     assert.deepEqual(
@@ -90,7 +102,23 @@ vows.describe('Application') // test suite
                     },
 
                     'emitted events should match the set': function(topic){
-                        assert.deepEqual(topic.events, ['+s1', '+s11', '+s111', '+s112', '+s2', '-s1', '-s11', '-s111', '-s112', '-s2']);
+                        assert.deepEqual(topic.events, [
+                            's1:start', '+s1',
+                                's11:start', '+s11',
+                                    's111:start', '+s111', 's111:started',
+                                    's112:start', '+s112', 's112:started',
+                                's11:started',
+                            's1:started',
+                            's2:start', '+s2', 's2:started',
+                            // stop
+                            's1:stop',
+                                's11:stop',
+                                    's111:stop', '-s111', 's111:stopped',
+                                    's112:stop', '-s112', 's112:stopped',
+                                '-s11', 's11:stopped',
+                            '-s1', 's1:stopped',
+                            's2:stop', '-s2', 's2:stopped'
+                        ]);
                     },
                     'all services are not running': function(topic){
                         assert.deepEqual(
