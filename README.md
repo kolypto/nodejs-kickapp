@@ -8,8 +8,8 @@ with the top-level Application object, `start()` it and enjoy the *ordnung*!
 
 
 
-Components
-==========
+Core Components
+===============
 
 The `Application` component
 ---------------------------
@@ -206,5 +206,57 @@ var app = new kickapp.Application(function(){
     });
 
     // Now each of your services can start using `this.log` Logger object
+});
+```
+
+
+Helper Services
+===============
+
+`NetService`, `NetServices`
+---------------------------
+
+`NetService` is a generalization of a Service which wraps an http, https, net or tls server.
+
+Its options is an object server definition with the following keys:
+
+* `lib: String` - The library to use: 'http', 'https', 'net', 'tls'. `.createServer()` method is used on it ;
+* `listen: Array` - Array of arguments for `Server.listen()` method. `[ port[, host[, backlog]]]` ;
+* `options: Object` - Options used for https & tls servers ;
+    For TLS and HTTPS, the options that require certificates support loading them from file paths ;
+* `accept: Function` - The listener function which accepts incoming connections.
+
+Examples:
+
+```js
+var app = new kickapp.Application(function(){
+    this.addChild('http', kickapp.helper.NetService, {
+        lib: 'http', listen: [80], accept: function(req, res){ res.send(':)'); }
+    });
+    this.addChild('net', kickapp.helper.NetService, {
+            lib: 'http', listen: [99], accept: function(socket){ socket.write(':)'); }
+    });
+});
+```
+
+`NetServices` is a container for multiple network services, ideal to keep multiple HTTP & HTTPS handlers for Express.
+
+Its `options` object has two keys:
+
+* `servers: Object` is a mapping from server name to server definition ;
+* `accept: Funtion` is the default listener function which is used if the server definition doesn't have it.
+
+Example:
+
+```js
+var app = new kickapp.Application(function(){
+    var app = express();
+    this.addChild('express', kickapp.helper.NetServices, {
+        servers: {
+            http: { lib: 'http', listen: [80] },
+            https: { lib: 'https', listen: [443], options: { key: 'server.key', cert: 'server.crt', ca: 'ca.crt' } }
+        },
+        listener: app
+    });
 });
 ```
