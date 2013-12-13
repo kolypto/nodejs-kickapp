@@ -67,7 +67,7 @@ exports.testApplicationPromised = function(test){
                     test.deepEqual(app.get('d4').methods, ['init']);
                     test.deepEqual(app.get('z').methods, ['init']);
                     // test events
-                    test.deepEqual(events.events, [
+                    test.deepEqual(events.log, [
                         'd1#init', // has no 'init' method, but produces the event
                         'd2#init', 'd3#init', 'd4#init', 'z#init',
                         'app#init' // application starts
@@ -82,7 +82,7 @@ exports.testApplicationPromised = function(test){
                 .then(function(){
                     test.strictEqual(app.isRunning(), true);
                     // test events
-                    test.deepEqual(events.events, [
+                    test.deepEqual(events.log, [
                         'd1#start', 'd2#start', 'd3#start', 'd4#start', 'z#start', 'app#start'
                     ]);
                     // reset
@@ -95,7 +95,7 @@ exports.testApplicationPromised = function(test){
                 .then(function(){
                     test.strictEqual(app.isRunning(), true);
                     // test events
-                    test.deepEqual(events.events, ['app#start']); // all services were started
+                    test.deepEqual(events.log, ['app#start']); // all services were started
                     // reset
                     events.reset();
                 });
@@ -106,7 +106,7 @@ exports.testApplicationPromised = function(test){
                 .then(function(){
                     test.strictEqual(app.isRunning(), false);
                     // test events
-                    test.deepEqual(events.events, [
+                    test.deepEqual(events.log, [
                         'z#stop', 'd4#stop', 'd3#stop', 'd2#stop', 'd1#stop', 'app#stop'
                     ]);
                     // reset
@@ -119,7 +119,7 @@ exports.testApplicationPromised = function(test){
                 .then(function(){
                     test.strictEqual(app.isRunning(), false);
                     // test events
-                    test.deepEqual(events.events, ['app#stop']); // all services were stopped
+                    test.deepEqual(events.log, ['app#stop']); // all services were stopped
                     // reset
                     events.reset();
                 });
@@ -150,7 +150,7 @@ exports.testApplicationCallback = function(test){
     app.init(function(err){
         if (err) test.ok(false, err.stack);
         test.strictEqual(app.isRunning(), false);
-        test.deepEqual(events.events, [
+        test.deepEqual(events.log, [
             '3#init', '1#init', '2#init', 'app#init'
         ]);
         // reset & proceed
@@ -159,7 +159,7 @@ exports.testApplicationCallback = function(test){
         app.start(function(err){
             if (err) test.ok(false, err.stack);
             test.strictEqual(app.isRunning(), true);
-            test.deepEqual(events.events, [
+            test.deepEqual(events.log, [
                 '3#start', '1#start', '2#start', 'app#start'
             ]);
             // reset & proceed
@@ -168,7 +168,7 @@ exports.testApplicationCallback = function(test){
             app.stop(function(err){
                 if (err) test.ok(false, err.stack);
                 test.strictEqual(app.isRunning(), false);
-                test.deepEqual(events.events, [
+                test.deepEqual(events.log, [
                     '2#stop', '1#stop', '3#stop', 'app#stop'
                 ]);
 
@@ -177,4 +177,64 @@ exports.testApplicationCallback = function(test){
             });
         });
     });
+};
+
+/** Test Application-as-a-Service and Object Services
+ * @param {test|assert} test
+ */
+exports.testApplicationCallback = function(test){
+    // Create an app
+    var app = new kickapp.Application(function(){
+    }).promisedMode(true);
+
+    app.addService('first', { start: function(){}, stop: function(){} });
+    app.addService('second', { start: function(){}, stop: function(){} });
+
+    // Create a wrapper app
+    var top = new kickapp.Application(function(){
+    }).promisedMode(true);
+
+    top.addService('sub-app', app);
+
+    // Events
+    var events = new u.EventsCollector();
+    events.listenToApp('app', app);
+    events.listenToApp('top', top);
+
+    // Test
+    [
+        // init()
+        function(){
+            return top.init()
+                .then(function(){
+                    test.deepEqual(events.log, [
+                        'first#init', 'second#init', 'app#init', 'sub-app#init', 'top#init'
+                    ]);
+                    events.reset();
+                });
+        },
+        // start()
+        function(){
+            return top.start()
+                .then(function(){
+                    test.deepEqual(events.log, [
+                        'first#start', 'second#start', 'app#start', 'sub-app#start', 'top#start'
+                    ]);
+                    events.reset();
+                });
+        },
+        // stop()
+        function(){
+            return top.stop()
+                .then(function(){
+                    test.deepEqual(events.log, [
+                        'second#stop', 'first#stop', 'app#stop', 'sub-app#stop', 'top#stop'
+                    ]);
+                    events.reset();
+                });
+        }
+    ].reduce(Q.when, Q(1))
+        .catch(function(e){ test.ok(false, e.stack); })
+        .finally(function(){ test.done(); })
+        .done();
 };

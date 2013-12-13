@@ -55,18 +55,18 @@ var callbackService = exports.callbackService = function(init, delay, errors){
 };
 
 /** Events collector
- * @property {Array.<String>} events
+ * @property {Array.<String>} log
  *      The collected events
  * @constructor
  */
 var EventsCollector = exports.EventsCollector = function(){
-    this.events = [];
+    this.log = [];
 };
 
 /** Reset caught events
  */
 EventsCollector.prototype.reset = function(){
-    this.events = [];
+    this.log = [];
 };
 
 /** Listen to some events on an EventEmitter.
@@ -82,7 +82,7 @@ EventsCollector.prototype.listen = function(name, em, events){
     var self = this;
     _.each(events, function(eventName){
         em.on(eventName, function(){
-            self.events.push(name + '#' + eventName);;
+            self.log.push(name + '#' + eventName);;
         });
     });
 };
