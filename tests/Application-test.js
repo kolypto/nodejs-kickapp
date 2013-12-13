@@ -16,14 +16,14 @@ exports.testApplication = function(test){
         this.a = 1;
         this.b = 2;
 
-        this.addService('d1', u.genService(true, false, 100), 'a', 'b'); // promised, no init()
-        this.addService('d2', u.genService(true, true, 100),  'c', 'd') // promised, with init()
+        this.addService('d1', u.promisedService(false, 10), 'a', 'b'); // promised, no init()
+        this.addService('d2', u.promisedService(true, 10),  'c', 'd') // promised, with init()
             .dependsOn('d1');
-        this.addService('d3', u.genService(true, true, 100),  'e', 'f') // promised, with init()
+        this.addService('d3', u.promisedService(true, 10),  'e', 'f') // promised, with init()
             .dependsOn('d1', 'd2');
-        this.addService('d4', u.genService(true, true, 100),  'g', 'h') // promised, with init()
+        this.addService('d4', u.promisedService(true, 10),  'g', 'h') // promised, with init()
             .dependsOn('d3');
-        this.addService('z', u.genService(true, true, 100),  'z'); // promised, with init()
+        this.addService('z', u.promisedService(true, 10),  'z'); // promised, with init()
     }).promisedMode(true);
 
     // Test structure
@@ -49,14 +49,7 @@ exports.testApplication = function(test){
 
     // Prepare the event listeners
     var events = new u.EventsCollector();
-    events.listen('app', app, ['init', 'start', 'stop']);
-    events.listen('d1', app.getServiceWrapper('d1'), ['init', 'start', 'stop']);
-    events.listen('d2', app.getServiceWrapper('d2'), ['init', 'start', 'stop']);
-    events.listen('d3', app.getServiceWrapper('d3'), ['init', 'start', 'stop']);
-    events.listen('d4', app.getServiceWrapper('d4'), ['init', 'start', 'stop']);
-    events.listen('z',  app.getServiceWrapper('z'),  ['init', 'start', 'stop']);
-
-    return test.done();
+    events.listenToApp('app', app);
 
     // Run tests
     return [
@@ -65,15 +58,65 @@ exports.testApplication = function(test){
             return app.init()
                 .then(function(){
                     // test services states
+                    test.deepEqual(app.get('d1').methods, []); // no init method
+                    test.deepEqual(app.get('d2').methods, ['init']);
+                    test.deepEqual(app.get('d3').methods, ['init']);
+                    test.deepEqual(app.get('d4').methods, ['init']);
+                    test.deepEqual(app.get('z').methods, ['init']);
                     // test events
+                    test.deepEqual(events.events, [
+                        'd1#init', // has no 'init' method, but produces the event
+                        'd2#init', 'd3#init', 'd4#init', 'z#init',
+                        'app#init' // application starts
+                    ]);
                     // reset
                     events.reset();
                 });
         },
         // start()
+        function(){
+            return app.start()
+                .then(function(){
+                    // test events
+                    test.deepEqual(events.events, [
+                        'd1#start', 'd2#start', 'd3#start', 'd4#start', 'z#start', 'app#start'
+                    ]);
+                    // reset
+                    events.reset();
+                });
+        },
         // start() again
+        function(){
+            return app.start()
+                .then(function(){
+                    // test events
+                    test.deepEqual(events.events, ['app#start']); // all services were started
+                    // reset
+                    events.reset();
+                });
+        },
         // stop()
+        function(){
+            return app.stop()
+                .then(function(){
+                    // test events
+                    test.deepEqual(events.events, [
+                        'z#stop', 'd4#stop', 'd3#stop', 'd2#stop', 'd1#stop', 'app#stop'
+                    ]);
+                    // reset
+                    events.reset();
+                });
+        },
         // stop() again
+        function(){
+            return app.stop()
+                .then(function(){
+                    // test events
+                    test.deepEqual(events.events, ['app#stop']); // all services were stopped
+                    // reset
+                    events.reset();
+                });
+        }
     ].reduce(Q.when, Q(1))
         .catch(function(e){ test.ok(false, e.stack); })
         .finally(function(){ test.done(); })

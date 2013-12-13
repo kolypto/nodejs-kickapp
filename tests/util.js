@@ -4,42 +4,34 @@ var Q = require('q'),
     _ = require('lodash')
     ;
 
-/** Generate a service constructor
- * @param {Boolean} promised
- *      Make a promised service, or a callback-based one?
+/** Generate a promised service constructor
  * @param {Boolean} init
  *      Make up an init method?
  * @param {Number} delay
  *      Delay in seconds before a method succeeds
  * @returns {IService}
  */
-var genService = exports.genService = function(promised, init, delay){
-    var delayService = function(app){
+var promisedService = exports.promisedService = function(init, delay){
+    var Service = function(app){
         this.args = _.toArray(arguments).slice(1);
         this.methods = [];
     };
-    if (init){
-        delayService.prototype.init = function(callback){
-            var q = Q.delay(delay).then(function(){
-                this.methods.push('init');
-            }.bind(this));
-            return promised? q : q.nodeify(callback);
+
+    var mkMethod = function(name){
+        return function(){
+            return Q.delay(delay)
+                .then(function(){
+                    this.methods.push(name);
+                }.bind(this));
         };
-    }
-    delayService.prototype.start = function(callback){
-        var q = Q.delay(delay).then(function(){
-            this.methods.push('start');
-        }.bind(this));
-        return promised? q : q.nodeify(callback);
-    };
-    delayService.prototype.stop = function(callback){
-        var q = Q.delay(delay).then(function(){
-            this.methods.push('stop');
-        }.bind(this));
-        return promised? q : q.nodeify(callback);
     };
 
-    return delayService;
+    if (init)
+        Service.prototype.init = mkMethod('init');
+    Service.prototype.start = mkMethod('start');
+    Service.prototype.stop = mkMethod('stop');
+
+    return Service;
 };
 
 /** Events collector
@@ -73,4 +65,16 @@ EventsCollector.prototype.listen = function(name, em, events){
             self.events.push(name + '#' + eventName);;
         });
     });
+};
+
+/** Listen to application & service events
+ * @param {String} appName
+ * @param {Application} app
+ */
+EventsCollector.prototype.listenToApp = function(appName, app){
+    this.listen(appName, app, ['init', 'start', 'stop']);
+
+    _.each(app.getServiceNames(), function(serviceName){
+        this.listen(serviceName, app.getServiceWrapper(serviceName), ['init', 'start', 'stop']);
+    }.bind(this));
 };
