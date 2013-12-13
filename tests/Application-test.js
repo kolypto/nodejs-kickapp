@@ -10,7 +10,7 @@ var _ = require('lodash'),
 /** Test the promised Application and its services
  * @param {test|assert} test
  */
-exports.testApplicationPromised = function(test){
+exports.testApplication = function(test){
     // Prepare the app
     var app = new kickapp.Application(function(a, b){
         this.a = a;
@@ -23,7 +23,19 @@ exports.testApplicationPromised = function(test){
             .dependsOn('d1', 'd2');
         this.addService('d4', u.promisedService(true, 10),  'g', 'h') // promised, with init()
             .dependsOn('d3');
-        this.addService('z', u.promisedService(true, 10),  'z'); // promised, with init()
+        this.addService('z', {
+            args: ['z'],
+            methods: [],
+            init: function(){
+                this.methods.push('init');
+            },
+            start: function(){
+                this.methods.push('start');
+            },
+            stop: function(){
+                this.methods.push('stop');
+            }
+        }); // promised, with init(), object
     }, 1, 2);
 
     // Test structure
@@ -41,7 +53,7 @@ exports.testApplicationPromised = function(test){
     test.deepEqual(app.get('d2'), { args: ['c','d'], methods: [] });
     test.deepEqual(app.get('d3'), { args: ['e','f'], methods: [] });
     test.deepEqual(app.get('d4'), { args: ['g','h'], methods: [] });
-    test.deepEqual(app.get('z'),  { args: ['z'],     methods: [] });
+    test.deepEqual(_.pick(app.get('z'), 'args', 'methods'),  { args: ['z'],     methods: [] });
 
     // Test toposorted sequence
     test.deepEqual(

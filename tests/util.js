@@ -38,22 +38,6 @@ var promisedService = exports.promisedService = function(init, delay, errors){
     return Service;
 };
 
-/** Create a callback-based service instead
- * @returns {Service}
- */
-var callbackService = exports.callbackService = function(init, delay, errors){
-    var service = promisedService.apply(this, arguments);
-
-    ['init', 'start', 'stop'].forEach(function(name){
-        if (_.isUndefined(service.prototype[name]))
-            return;
-        service.prototype[name] = _.wrap(service.prototype[name], function(m, callback){
-            return m.call(this).nodeify(callback);
-        });
-    });
-    return service;
-};
-
 /** Events collector
  * @property {Array.<String>} log
  *      The collected events
