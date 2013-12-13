@@ -25,6 +25,7 @@ Table of Contents
         * <a href="#object-service">Object Service</a>
     * <a href="#application">Application</a>
         * <a href="#structure">Structure</a>
+            * <a href="#applicationpromisedmodepromisedmodeapplication">Application.promisedMode(promisedMode):Application</a>
             * <a href="#applicationaddservicename-serviceconstructorapplication">Application.addService(name, serviceConstructor):Application</a>
             * <a href="#applicationdependsonname-application">Application.dependsOn(name, ...):Application</a>
             * <a href="#applicationgetservicenameiservice">Application.get(serviceName):IService</a>
