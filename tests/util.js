@@ -9,9 +9,11 @@ var Q = require('q'),
  *      Make up an init method?
  * @param {Number} delay
  *      Delay in seconds before a method succeeds
+ * @param {Array.<String>?} errors
+ *      Method names to place errors in
  * @returns {IService}
  */
-var promisedService = exports.promisedService = function(init, delay){
+var promisedService = exports.promisedService = function(init, delay, errors){
     var Service = function(app){
         this.args = _.toArray(arguments).slice(1);
         this.methods = [];
@@ -19,6 +21,8 @@ var promisedService = exports.promisedService = function(init, delay){
 
     var mkMethod = function(name){
         return function(){
+            if (errors && errors.indexOf(name))
+                throw new Error('Method error: ' + name);
             return Q.delay(delay)
                 .then(function(){
                     this.methods.push(name);
@@ -32,6 +36,22 @@ var promisedService = exports.promisedService = function(init, delay){
     Service.prototype.stop = mkMethod('stop');
 
     return Service;
+};
+
+/** Create a callback-based service instead
+ * @returns {Service}
+ */
+var callbackService = exports.callbackService = function(init, delay, errors){
+    var service = promisedService.apply(this, arguments);
+
+    ['init', 'start', 'stop'].forEach(function(name){
+        if (_.isUndefined(service.prototype[name]))
+            return;
+        service.prototype[name] = _.wrap(service.prototype[name], function(m, callback){
+            return m.call(this).nodeify(callback);
+        });
+    });
+    return service;
 };
 
 /** Events collector
