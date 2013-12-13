@@ -12,7 +12,7 @@ Key features:
 * Service workflow: `init()`, `start()`, `stop()`
 * Service dependencies resolution
 * Can deal with hierarchical services
-* Optional support for promises. Enjoy them if you also feel they're great! :)
+* Promise-based: using the [q](https://npmjs.org/package/q) package
 * Unit-tested
 
 
@@ -24,22 +24,22 @@ Table of Contents
     * <a href="#service">Service</a>
         * <a href="#object-service">Object Service</a>
     * <a href="#application">Application</a>
+        * <a href="#applicationapp-args">Application(App, ...args)</a>
         * <a href="#structure">Structure</a>
-            * <a href="#applicationpromisedmodepromisedmodeapplication">Application.promisedMode(promisedMode):Application</a>
-            * <a href="#applicationaddservicename-serviceconstructorapplication">Application.addService(name, serviceConstructor):Application</a>
-            * <a href="#applicationdependsonname-application">Application.dependsOn(name, ...):Application</a>
+            * <a href="#applicationaddservicename-serviceconstructor-argsapplication">Application.addService(name, serviceConstructor, ...args):Application</a>
+            * <a href="#applicationdependsonname-namesapplication">Application.dependsOn(name, ...names):Application</a>
             * <a href="#applicationgetservicenameiservice">Application.get(serviceName):IService</a>
             * <a href="#applicationgetservicewrapperservicenameservicewrapper">Application.getServiceWrapper(serviceName):ServiceWrapper</a>
             * <a href="#applicationgetservicenamesarray">Application.getServiceNames():Array.</a>
             * <a href="#applicationisrunningboolean">Application.isRunning():Boolean</a>
         * <a href="#workflow">Workflow</a>
-            * <a href="#applicationinitcallback">Application.init(callback)</a>
-            * <a href="#applicationstartcallback">Application.start(callback)</a>
-            * <a href="#applicationstopcallback">Application.stop(callback)</a>
+            * <a href="#applicationinit">Application.init()</a>
+            * <a href="#applicationstart">Application.start()</a>
+            * <a href="#applicationstop">Application.stop()</a>
         * <a href="#events">Events</a>
     * <a href="#servicewrapper">ServiceWrapper</a>
 * <a href="#full-example">Full Example</a>
-* <a href="#promised-mode">Promised Mode</a>
+* <a href="#promise-haters">Promise-Haters</a>
 * <a href="#application-as-a-service">Application as a Service</a>
 
 
@@ -77,17 +77,16 @@ var DbService = function(app, url){
     this.client = undefined;
 };
 
-DbService.prototype.init = function(callback){
+DbService.prototype.init = function(){
     this.client = new DatabaseClient(this.url); // init some imaginary client
-    callback();
 };
 
-DbService.prototype.start = function(callback){
-    this.client.connect(callback);
+DbService.prototype.start = function(){
+    return this.client.connect(); // assuming it's promise-based
 };
 
-DbService.prototype.stop = function(callback){
-    this.client.disconnect(callback);
+DbService.prototype.stop = function(){
+    return this.client.disconnect();
 };
 ```
 
@@ -96,8 +95,6 @@ Having such a service, you can:
 * Add it to an Application
 * Define service dependencies
 * Launch them all in the correct order
-
-Note: you can use promises: see [Promised Mode](#promised-mode).
 
 ### Object Service
 
@@ -108,11 +105,11 @@ a valid service:
 var DbService = {
     app: undefined,
     client: new DatabaseClient('db://localhost/'),
-    start: function(callback){
-        this.client.connect(callback);
+    start: function(){
+        return this.client.connect();
     },
-    stop: function(callback){
-        this.client.disconnect(callback);
+    stop: function(){
+        return this.client.disconnect();
     },
 };
 ```
@@ -139,18 +136,16 @@ var App = new kickapp.Application(function(configFile){
 
 By design, an `Application` does not have custom start/stop behavior: instead, it wraps services.
 
+### Application(App, ...args)
+
 ### Structure
 
-#### Application.promisedMode(promisedMode):Application
-Set the promised mode to `true` or `false`.
-
-See [Promised Mode](#promised-mode).
-
-#### Application.addService(name, serviceConstructor):Application
+#### Application.addService(name, serviceConstructor, ...args):Application
 Add a service to the application.
 
 * `name: String`: Name of the service. Use any reasonable string.
 * `serviceConstructor: Function`: Constructor function for an object that implements the [`IService`](lib/IService.js) interface.
+* `...args`: Variadic arguments for the service constructor
 
 Returns: an instance of [`ServiceWrapper`](#servicewrapper) (see below).
 
@@ -172,10 +167,12 @@ var App = new kickapp.Application(function(configFile){
 }, 'app/config.js');
 ```
 
-#### Application.dependsOn(name, ...):Application
+#### Application.dependsOn(name, ...names):Application
 Add dependencies for the recently added Service.
 
 When a Service depends on other services, they will be started before starting this one.
+
+Dependencies can be given either as arguments, or as a single array argument.
 
 #### Application.get(serviceName):IService
 Get the Service object by name:
@@ -205,18 +202,18 @@ Service methods are run in the following fashion:
 * `init()`, `start()`, `stop()` methods are called when the corresponding Application method is called.
   Unlike the constructor, these honor the service dependencies.
 
-#### Application.init(callback)
-Call `init()` on all services, honoring the dependencies. Invoke the callback when done.
+#### Application.init()
+Call `init()` on all services, honoring the dependencies. Returns a promise.
 
 Note that `IService.init` is optional.
 
-#### Application.start(callback)
-Call `start()` on all services, honoring the dependencies. Invoke the callback when done.
+#### Application.start()
+Call `start()` on all services, honoring the dependencies. Returns a promise.
 
 If some services were not yet initialized with `init()`, Application does that.
 
-#### Application.stop(callback)
-Call `stop()` on all services, honoring the dependencies in reverse order. Invoke the callback when done.
+#### Application.stop()
+Call `stop()` on all services, honoring the dependencies in reverse order. Returns a promise.
 
 ### Events
 
@@ -266,21 +263,21 @@ var App = new kickapp.Application(function(configFile){ // Application construct
 }, 'app/config.js'); // Arguments for the Application constructor
 
 // Launch it
-App.start(function(err){
-    // callback invoked when all services have started
-    if (err)
-        console.error('Application.start failed:', err.stack);
-    else
+App.start()
+    .then(function(){
         console.log('Application initialized and started!');
-});
+    })
+    .catch(function(err){
+        console.error('Application.start failed:', err.stack);
+    });
 
 // Stop the services properly when the application exitsq
 process.on('SIGINT', process.exit);
 process.on('exit', function(){
-    App.stop(function(err){
-        if (err)
+    App.stop()
+        .catch(function(err){
             console.error('Application.stop failed:', err.stack);
-    });
+        });
 });
 ```
 
@@ -289,51 +286,21 @@ process.on('exit', function(){
 
 
 
-Promised Mode
-=============
+Promise-Haters
+==============
 
-If you like promises as much as I do, you'll enjoy the "promised" mode of Application and its services.
-
-In promised mode, both Application and your Services leverage promises in their `init()`, `start()` and `stop()` methods:
+If you dislike promises, you can always get back to the old good NodeJS-style callbacks:
 
 ```js
-var Q = require('q'),
-    kickapp = require('kickapp')
-    ;
-
-// Service
-var DbService = function(app, url){
-    this.app = app;
-    this.url = url;
-    this.client = undefined;
-};
-
-DbService.prototype.init = function(){
-    this.client = new DatabaseClient(this.url);
-    // returns `undefined` as a promise
-};
-
-DbService.prototype.start = function(callback){
-    return Q.nmcall(this.client, 'connect'); // return a promise
-};
-
-DbService.prototype.stop = function(callback){
-    return Q.nmcall(this.client, 'disconnect'); // return a promise
-};
-
-// Application
 var App = new kickapp.Application(function(){
-    this.addService('db', DbService, 'db://localhost/');
 });
 
-App.start()
-    .then(function(){
-        console.log('Application initialized and started!');
-    })
-    .catch(function(err){
-        // Application failed to start
+App.start().nodeify(function(err){
+    if (err)
         console.error('Application.start failed:', err.stack);
-    });
+    else
+        console.log('Application initialized and started!');
+});
 ```
 
 

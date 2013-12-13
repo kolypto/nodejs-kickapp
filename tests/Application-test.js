@@ -24,7 +24,7 @@ exports.testApplicationPromised = function(test){
         this.addService('d4', u.promisedService(true, 10),  'g', 'h') // promised, with init()
             .dependsOn('d3');
         this.addService('z', u.promisedService(true, 10),  'z'); // promised, with init()
-    }, 1, 2).promisedMode(true);
+    }, 1, 2);
 
     // Test structure
     test.strictEqual(app.a, 1);
@@ -130,69 +130,20 @@ exports.testApplicationPromised = function(test){
         .done();
 };
 
-/** Test the non-promised application
- * @param {test|assert} test
- */
-exports.testApplicationCallback = function(test){
-    var app = new kickapp.Application(function(){
-    });
-
-    app.addService('1', u.callbackService(false, 10))
-        .dependsOn('3');
-    app.addService('2', u.callbackService(true, 10));
-    app.addService('3', u.callbackService(true, 10));
-
-    // Prepare the event listeners
-    var events = new u.EventsCollector();
-    events.listenToApp('app', app);
-
-    // Run tests
-    app.init(function(err){
-        if (err) test.ok(false, err.stack);
-        test.strictEqual(app.isRunning(), false);
-        test.deepEqual(events.log, [
-            '3#init', '1#init', '2#init', 'app#init'
-        ]);
-        // reset & proceed
-        events.reset();
-
-        app.start(function(err){
-            if (err) test.ok(false, err.stack);
-            test.strictEqual(app.isRunning(), true);
-            test.deepEqual(events.log, [
-                '3#start', '1#start', '2#start', 'app#start'
-            ]);
-            // reset & proceed
-            events.reset();
-
-            app.stop(function(err){
-                if (err) test.ok(false, err.stack);
-                test.strictEqual(app.isRunning(), false);
-                test.deepEqual(events.log, [
-                    '2#stop', '1#stop', '3#stop', 'app#stop'
-                ]);
-
-                // Done
-                test.done();
-            });
-        });
-    });
-};
-
 /** Test Application-as-a-Service and Object Services
  * @param {test|assert} test
  */
-exports.testApplicationCallback = function(test){
+exports.testApplicationAsAService = function(test){
     // Create an app
     var app = new kickapp.Application(function(){
-    }).promisedMode(true);
+    });
 
     app.addService('first', { start: function(){}, stop: function(){} });
     app.addService('second', { start: function(){}, stop: function(){} });
 
     // Create a wrapper app
     var top = new kickapp.Application(function(){
-    }).promisedMode(true);
+    });
 
     top.addService('sub-app', app);
 
