@@ -20,6 +20,8 @@ Key features:
 Table of Contents
 =================
 
+* <a href="#kickapp">KickApp</a>
+* <a href="#table-of-contents">Table of Contents</a>
 * <a href="#core-components">Core Components</a>
     * <a href="#service">Service</a>
         * <a href="#object-service">Object Service</a>
@@ -41,6 +43,8 @@ Table of Contents
 * <a href="#full-example">Full Example</a>
 * <a href="#promise-haters">Promise-Haters</a>
 * <a href="#application-as-a-service">Application as a Service</a>
+* <a href="#bundled-services">Bundled Services</a>
+    * <a href="#netservice">NetService</a>
 
 
 
