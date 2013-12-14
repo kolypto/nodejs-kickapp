@@ -3,6 +3,7 @@
 var kickapp = require('../'),
     net = require('net'),
     http = require('http'),
+    dgram = require('dgram'),
     Q = require('q')
     ;
 
@@ -25,12 +26,22 @@ exports.testNetService = function(test){
             }
         );
 
+        this.addService('udp4', kickapp.services.NetService,
+            { lib: 'udp4', listen: [0, 'localhost'] },
+            function(msg, rinfo){
+                app.get('udp4').server.send(
+                    new Buffer('hi'), 0, 2,
+                    rinfo.port, rinfo.address
+                );
+            }
+        );
+
         // TODO: tls service test
         // TODO: https service test
     });
 
     /**
-     * @type {{ http: { address: String, port: Number }, net: { address: String, port: Number } }}
+     * @type {{ http: { address: String, port: Number }, net: { address: String, port: Number }, udp4: { address: String, port: Number }}}
      */
     var addresses = {};
 
@@ -39,6 +50,7 @@ exports.testNetService = function(test){
         .then(function(){
             addresses.net  = app.get('net') .server.address();
             addresses.http = app.get('http').server.address();
+            addresses.udp4 = app.get('udp4').server.address();
         })
         // Try to talk with the accept function: net
         .then(function(){
@@ -57,7 +69,7 @@ exports.testNetService = function(test){
                     .then(function(){
                         sock.end();
                     }),
-                d.promise
+                d.promise.timeout(1000, 'Socket connect timeout')
             ]);
         })
         // Try to talk with the accept function: http
@@ -75,6 +87,30 @@ exports.testNetService = function(test){
 
             return d.promise
                 .timeout(1000, 'HTTP connect timeout');
+        })
+        // Try to talk with the accept function: udp4
+        .then(function(){
+            var d = Q.defer();
+
+            var sock = dgram.createSocket('udp4', function(msg, rinfo){
+                if (msg.toString('utf8') === 'hi')
+                    d.resolve();
+                else
+                    d.reject(new Error('Wrong data received: ' + msg));
+            });
+
+            sock.send(
+                new Buffer('hello'), 0, 5,
+                addresses.udp4.port, addresses.udp4.address,
+                function(err, bytes){
+                    if (err)
+                        d.reject(err);
+                }
+            );
+
+            return d.promise
+                .timeout(1000, 'UDP4 response timeout')
+                .finally(function(){ sock.close(); });
         })
         // TODO: Try to talk with the accept function: TLS
         // TODO: Try to talk with the accept function: HTTPS

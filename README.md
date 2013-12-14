@@ -337,22 +337,25 @@ KickApp comes with some handy bundled services.
 NetService
 ----------
 
-NetService is a helper to wrap `net.Server`, `http.Server`, `https.Server`, `tls.Server` network servers in a KickApp
-service. It also supports static configuration with generalized interface.
+NetService is a helper to wrap `net.Server`, `http.Server`, `https.Server`, `tls.Server`, `dgram.createSocket`
+network servers in a KickApp service. It also supports static configuration with generalized interface.
 
 NetService accepts two arguments:
 
-* `server: Object`: Server configuration object:
+* `config: Object`: Server configuration object:
 
-    * `server.lib: String`: The server type to create.
-      Supported values: `'net'` (TCP socket), `'tls'` (TLS socket), `'http'` (HTTP server), `'https'` (HTTPS server).
-    * `server.listen: Array`: Array of arguments for the `listen()` function.
+    * `config.lib: String`: The server type to create.
+      Supported values: `'net'` (TCP socket), `'tls'` (TLS socket), `'http'` (HTTP server), `'https'` (HTTPS server),
+      `'udp4'` (UDP IPv4 socket), `'udp6'` (UDP IPv6 socket).
+    * `config.listen: Array`: Array of arguments for the `listen()` function.
 
         For `'net'`, `'http'`, `'https'`: port, [hostname], [backlog]
 
         For `'tls'`: port, [host]
 
-    * `server.options: Object`: Options for the `createServer()` function. See [NodeJS Manual](http://nodejs.org/api/index.html).
+        For `'udp4'`, `'udp6'`: port, [address]
+
+    * `config.options: Object`: Options for the `createServer()` function. See [NodeJS Manual](http://nodejs.org/api/index.html).
 
         Note: for `'tls'` and `'https'` certificates & stuff, you can optionally specify filenames for the following keys:
         `'pfx', 'key', 'cert', 'ca', 'crl'`.
@@ -362,6 +365,8 @@ NetService accepts two arguments:
         For `'net', 'tls'`: `function(sock: net.Socket)`
 
         For `'http'`, `'https'`: `function(req: http.ClientRequest, res: http.ServerResponse)`
+
+        For `'udp4'`, `'udp6'`: `function(msg: String|Buffer, rinfo: Object)`
 
 Wielding the service, you can start/stop it an get error handling:
 
@@ -381,3 +386,8 @@ var app = new kickapp.Application(function(){
     );
 });
 ```
+
+NetService has the following properties:
+
+* `config`: Server configuration object
+* `server`: The created server
