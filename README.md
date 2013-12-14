@@ -323,3 +323,61 @@ var top = new kickapp.Application(function(){
     this.addService('app', app); // added as a service
 });
 ```
+
+
+
+
+
+
+Bundled Services
+================
+
+KickApp comes with some handy bundled services.
+
+NetService
+----------
+
+NetService is a helper to wrap `net.Server`, `http.Server`, `https.Server`, `tls.Server` network servers in a KickApp
+service. It also supports static configuration with generalized interface.
+
+NetService accepts two arguments:
+
+* `server: Object`: Server configuration object:
+
+    * `server.lib: String`: The server type to create.
+      Supported values: `'net'` (TCP socket), `'tls'` (TLS socket), `'http'` (HTTP server), `'https'` (HTTPS server).
+    * `server.listen: Array`: Array of arguments for the `listen()` function.
+
+        For `'net'`, `'http'`, `'https'`: port, [hostname], [backlog]
+
+        For `'tls'`: port, [host]
+
+    * `server.options: Object`: Options for the `createServer()` function. See [NodeJS Manual](http://nodejs.org/api/index.html).
+
+        Note: for `'tls'` and `'https'` certificates & stuff, you can optionally specify filenames for the following keys:
+        `'pfx', 'key', 'cert', 'ca', 'crl'`.
+
+* `accept: Function`: Method used to accept the incoming connections.
+
+        For `'net', 'tls'`: `function(sock: net.Socket)`
+
+        For `'http'`, `'https'`: `function(req: http.ClientRequest, res: http.ServerResponse)`
+
+Wielding the service, you can start/stop it an get error handling:
+
+```js
+var app = new kickapp.Application(function(){
+    this.addService('net', kickapp.services.NetService,
+        { lib: 'net', listen: [6001, 'localhost'] },
+        function(sock){
+            sock.end('hi');
+        }
+    );
+    this.addService('http', kickapp.services.NetService,
+        { lib: 'http', listen: [6080, 'localhost'] },
+        function(req, res){
+            res.end('hi');
+        }
+    );
+});
+```
