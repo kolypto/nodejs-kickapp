@@ -1,3 +1,5 @@
+[![Version](https://badge.fury.io/js/kickapp.png)](https://npmjs.org/package/kickapp)
+[![Dependency Status](https://gemnasium.com/kolypto/nodejs-kickapp.png)](https://gemnasium.com/kolypto/nodejs-kickapp)
 [![Build Status](https://travis-ci.org/kolypto/nodejs-kickapp.png?branch=master)](https://travis-ci.org/kolypto/nodejs-kickapp)
 
 KickApp
