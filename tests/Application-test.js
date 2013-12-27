@@ -142,6 +142,53 @@ exports.testApplication = function(test){
         .done();
 };
 
+/** Test that init() is auto-called on start()
+ * @param {test|assert} test
+ */
+exports.testApplicationAutoInit = function(test){
+    var events = [];
+
+    // Prepare the app
+    var app = new kickapp.Application(function(a, b){
+        this.addService('a', {
+            init:  function(){ events.push('a#init'); },
+            start: function(){ events.push('a#start'); },
+            stop:  function(){ events.push('a#stop'); }
+        }).dependsOn('b');
+        this.addService('b', {
+            init:  function(){ events.push('b#init'); },
+            start: function(){ events.push('b#start'); },
+            stop:  function(){ events.push('b#stop'); }
+        });
+        this.addService('c', {
+            init:  function(){ events.push('c#init'); },
+            start: function(){ events.push('c#start'); },
+            stop:  function(){ events.push('c#stop'); }
+        }).dependsOn('b');
+    });
+
+    app.start()
+        .then(function(){
+            return app.stop();
+        })
+        .then(function(){
+            test.deepEqual(events, [
+                'b#init',
+                'a#init',
+                'c#init',
+                'b#start',
+                'a#start',
+                'c#start',
+                'c#stop',
+                'a#stop',
+                'b#stop'
+            ]);
+        })
+        .catch(function(e){ test.ok(false, e.stack); })
+        .finally(function(){ test.done(); })
+        .done();
+};
+
 /** Test Application-as-a-Service and Object Services
  * @param {test|assert} test
  */
