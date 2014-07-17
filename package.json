@@ -1,7 +1,7 @@
 {
   "name": "kickapp",
   "description": "Application architecture framework with pluggable services",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "kolypto <kolypto@gmail.com>",
   "license": "MIT",
   "maintainers": [
@@ -20,7 +20,7 @@
   ],
   
   "dependencies": {
-    "q": "0.9.x",
+    "q": "1.0.x",
     "lodash": "2.4.x"
   },
   "devDependencies": {
