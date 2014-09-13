@@ -1,59 +1,65 @@
 'use strict';
 
-var kickapp = require('../'),
+var expect = require('chai').expect,
+    kickapp = require('../'),
     net = require('net'),
     http = require('http'),
     dgram = require('dgram'),
     Q = require('q')
     ;
 
-/** Test NetService
- * @param test
- */
-exports.testNetService = function(test){
-    // Application
-    var app = new kickapp.Application(function(){
-        this.addService('net', kickapp.services.NetService,
-            { lib: 'net', listen: [0, 'localhost'] },
-            function(sock){
-                sock.end('hi');
-            }
-        );
-        this.addService('http', kickapp.services.NetService,
-            { lib: 'http', listen: [0, 'localhost'] },
-            function(req, res){
-                res.end('hi');
-            }
-        );
 
-        this.addService('udp4', kickapp.services.NetService,
-            { lib: 'udp4', listen: [0, 'localhost'] },
-            function(msg, rinfo){
-                app.get('udp4').server.send(
-                    new Buffer('hi'), 0, 2,
-                    rinfo.port, rinfo.address
-                );
-            }
-        );
+describe('NetService', function(){
 
-        // TODO: tls service test
-        // TODO: https service test
-    });
+    describe('with multiple services', function(){
+        // Application
+        var app = new kickapp.Application(function(){
+            this.addService('net', kickapp.services.NetService,
+                { lib: 'net', listen: [0, 'localhost'] },
+                function(sock){
+                    sock.end('hi');
+                }
+            );
+            this.addService('http', kickapp.services.NetService,
+                { lib: 'http', listen: [0, 'localhost'] },
+                function(req, res){
+                    res.end('hi');
+                }
+            );
 
-    /**
-     * @type {{ http: { address: String, port: Number }, net: { address: String, port: Number }, udp4: { address: String, port: Number }}}
-     */
-    var addresses = {};
+            this.addService('udp4', kickapp.services.NetService,
+                { lib: 'udp4', listen: [0, 'localhost'] },
+                function(msg, rinfo){
+                    app.get('udp4').server.send(
+                        new Buffer('hi'), 0, 2,
+                        rinfo.port, rinfo.address
+                    );
+                }
+            );
 
-    app.start()
-        // Store addresses
-        .then(function(){
-            addresses.net  = app.get('net') .server.address();
-            addresses.http = app.get('http').server.address();
-            addresses.udp4 = app.get('udp4').server.address();
-        })
-        // Try to talk with the accept function: net
-        .then(function(){
+            // TODO: tls service test
+            // TODO: https service test
+        });
+
+        /** Addresses for every service
+         * @type {{
+         *          http: { address: String, port: Number },
+         *          net: { address: String, port: Number },
+         *          udp4: { address: String, port: Number }}}
+         */
+        var addresses = {};
+
+        before(function(){
+            return app.start()
+                .then(function(){
+                    addresses.net  = app.get('net') .server.address();
+                    addresses.http = app.get('http').server.address();
+                    addresses.udp4 = app.get('udp4').server.address();
+                });
+        });
+        after(app.stop.bind(app));
+
+        it('should talk with the "net" service', function(){
             var sock = new net.Socket();
 
             var d = Q.defer();
@@ -71,9 +77,9 @@ exports.testNetService = function(test){
                     }),
                 d.promise.timeout(1000, 'Socket connect timeout')
             ]);
-        })
-        // Try to talk with the accept function: http
-        .then(function(){
+        });
+
+        it('should talk with the "http" service', function(){
             var d = Q.defer();
 
             var req = http.get({ host: addresses.http.address, port: addresses.http.port }, function(res){
@@ -87,9 +93,9 @@ exports.testNetService = function(test){
 
             return d.promise
                 .timeout(1000, 'HTTP connect timeout');
-        })
-        // Try to talk with the accept function: udp4
-        .then(function(){
+        });
+
+        it('should talk with the "udp" service', function(){
             var d = Q.defer();
 
             var sock = dgram.createSocket('udp4', function(msg, rinfo){
@@ -111,40 +117,35 @@ exports.testNetService = function(test){
             return d.promise
                 .timeout(1000, 'UDP4 response timeout')
                 .finally(function(){ sock.close(); });
-        })
-        // TODO: Try to talk with the accept function: TLS
-        // TODO: Try to talk with the accept function: HTTPS
-        .catch(function(err){ test.ok(false, err.stack); })
-        .finally(function(){ return app.stop(); })
-        .finally(function(){ test.done(); })
-        .done();
-};
+        });
 
-/** Test NetService error handling
- * @param {test|assert} test
- */
-exports.testNetServiceErrors = function(test){
-    // Application
-    var app = new kickapp.Application(function(){
-        this.addService('net1', kickapp.services.NetService,
-            { lib: 'net', listen: [1999, 'localhost'] },
-            function(sock){}
-        );
-        this.addService('net2', kickapp.services.NetService,
-            { lib: 'net', listen: [1999, 'localhost'] },
-            function(sock){}
-        );
+        xit('should talk with the "tls" service');
+        xit('should talk with the "https" service');
     });
 
-    app.start()
-        .then(function(){
-            test.ok(false, 'app.start() should have failed');
-        })
-        .catch(function(e){
-            test.equal(e.code, 'EADDRINUSE');
-            test.equal(app.isRunning(), false);
-        })
-        .finally(function(){ return app.stop(); })
-        .finally(function(){ test.done(); })
-        .done();
-};
+    describe('with conflicting services', function(){
+        // Application
+        var app = new kickapp.Application(function(){
+            // Two conflicting services
+            this.addService('net1', kickapp.services.NetService,
+                { lib: 'net', listen: [1999, 'localhost'] },
+                function(sock){}
+            );
+            this.addService('net2', kickapp.services.NetService,
+                { lib: 'net', listen: [1999, 'localhost'] },
+                function(sock){}
+            );
+        });
+
+        it('should fail to start', function(){
+            return app.start()
+                .then(function(){
+                    throw Error('Unexpectedly started');
+                }, function(e){
+                    expect(app.isRunning()).to.be.false;
+                    expect(e.code).to.be.equal('EADDRINUSE');
+                });
+        });
+    });
+
+});

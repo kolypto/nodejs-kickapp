@@ -1,7 +1,7 @@
 {
   "name": "kickapp",
   "description": "Application architecture framework with pluggable services",
-  "version": "1.0.6-0",
+  "version": "1.0.7-0",
   "author": "kolypto <kolypto@gmail.com>",
   "license": "MIT",
   "maintainers": [
@@ -24,13 +24,14 @@
     "lodash": "2.4.x"
   },
   "devDependencies": {
-    "nodeunit": "0.9.x"
+    "mocha": "1.21.x",
+    "chai": "1.9.x"
   },
   "engines": {
     "node": ">= 0.9.0"
   },
   
   "scripts": {
-    "test": "./node_modules/.bin/nodeunit tests/*-test.js"
+    "test": "./node_modules/mocha/bin/mocha tests/*-test.js"
   }
 }

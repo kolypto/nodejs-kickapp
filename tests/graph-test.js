@@ -1,82 +1,81 @@
 'use strict';
 
-var graph = require('../lib/kickapp/graph')
+var graph = require('../lib/kickapp/graph'),
+    expect = require('chai').expect
     ;
 
-/** Test topological sort
- * @param {test|assert} test
- */
-exports.testToposort = function(test){
-    var G;
-
-    // Plain
-    G = {
-        'a': [],
-        'b': [],
-        'c': [],
-        'd': [],
-    };
-    test.deepEqual(graph.toposort(G), ['a','b','c','d']);
-
-    // 1 dep
-    G = {
-        'a': ['d'],
-        'b': [],
-        'c': [],
-        'd': [],
-    };
-    test.deepEqual(graph.toposort(G), ['d','a','b','c']);
-
-    // 2 dep
-    G = {
-        'a': ['d','b'],
-        'b': [],
-        'c': [],
-        'd': [],
-    };
-    test.deepEqual(graph.toposort(G), ['d','b','a','c']);
-
-    // 2 dep, 1 dep
-    G = {
-        'a': ['d','b'],
-        'b': [],
-        'c': [],
-        'd': ['b'],
-    };
-    test.deepEqual(graph.toposort(G), ['b','d','a','c']);
-
-    // 2 dep, 2 dep
-    G = {
-        'a': ['d','b'],
-        'b': ['c'],
-        'c': [],
-        'd': ['b'],
-    };
-    test.deepEqual(graph.toposort(G), ['c','b','d','a']);
-
-    // 2 dep, 3 dep, loop
-    G = {
-        'a': ['d','b'],
-        'b': ['c'],
-        'c': ['a'],
-        'd': ['b'],
-    };
-    test.throws(function(){
-        graph.toposort(G);
-    }, Error);
-
-    // Complex
-    G = {
-        '7': ['11', '8'],
-        '5': ['11'],
-        '3': ['8', '10'],
-        '11': ['2','9','10'],
-        '8': ['9'],
-        '2': [],
-        '9': [],
-        '10': []
-    };
-    test.deepEqual(graph.toposort(G), ['9', '8', '10', '3', '2', '11', '5', '7']);
-
-    test.done();
-};
+describe('Topological sort', function(){
+    it('plain sort', function(){
+        var G = {
+            'a': [],
+            'b': [],
+            'c': [],
+            'd': [],
+        };
+        expect(graph.toposort(G)).to.deep.equal(['a','b','c','d']);
+    });
+    
+    it('1 dependency', function(){
+        var G = {
+            'a': ['d'],
+            'b': [],
+            'c': [],
+            'd': [],
+        };
+        expect(graph.toposort(G)).to.deep.equal(['d','a','b','c']);
+    });
+    
+    it('2 dependencies', function(){
+        var G = {
+            'a': ['d','b'],
+            'b': [],
+            'c': [],
+            'd': [],
+        };
+        expect(graph.toposort(G)).to.deep.equal(['d','b','a','c']);
+    });
+    
+    it('2 + 1  dependencies', function(){
+        var G = {
+            'a': ['d','b'],
+            'b': [],
+            'c': [],
+            'd': ['b'],
+        };
+        expect(graph.toposort(G)).to.deep.equal(['b','d','a','c']);
+    });
+    
+    it('2 + 2 dependencies', function(){
+        var G = {
+            'a': ['d','b'],
+            'b': ['c'],
+            'c': [],
+            'd': ['b'],
+        };
+        expect(graph.toposort(G)).to.deep.equal(['c','b','d','a']);
+    });
+    
+    it('2 + 3 looped dependencies', function(){
+        var G = {
+            'a': ['d','b'],
+            'b': ['c'],
+            'c': ['a'],
+            'd': ['b'],
+        };
+        expect(function(){ graph.toposort(G); }).to.throw(Error, 'Cyclic dependency: a:d,b ; b:c ; c:a ; d:b');
+    });
+    
+    it('complex dependencies', function(){
+        var G = {
+            '7': ['11', '8'],
+            '5': ['11'],
+            '3': ['8', '10'],
+            '11': ['2','9','10'],
+            '8': ['9'],
+            '2': [],
+            '9': [],
+            '10': []
+        };
+        expect(graph.toposort(G)).to.deep.equal(['9', '8', '10', '3', '2', '11', '5', '7']);
+    });
+});
