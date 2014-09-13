@@ -49,6 +49,7 @@ Table of Contents
 * <a href="#application-as-a-service">Application as a Service</a>
 * <a href="#bundled-services">Bundled Services</a>
     * <a href="#netservice">NetService</a>
+    * <a href="#timerservice">TimerService</a>
 
 
 
@@ -399,3 +400,52 @@ NetService has the following properties:
 
 * `config`: Server configuration object
 * `server`: The created server
+
+TimerService
+------------
+
+TimerService handles timers as a Service, which are stopped together with the application.
+
+The service provides the following methods which wrap global counterparts:
+
+* `setTimeout()`, `clearTimeout()`
+* `setInterval()`, `clearInterval()`
+
+By using the `set*()` family of methods, you add the timer to the internal service registry, and when the server
+is stopped -- it clears the timers automatically.
+
+This is especially important with unit-tests: when unit-testing an application which uses timers -- these continue to
+function even after the tested application was restarted for a new test case.
+
+These public methods have same signatures with the methods they wrap, except for the requirement to use these through
+the service:
+
+```js
+// Define the application
+var app = new kickapp.Application(function(){
+    // Timers
+    this.addService('timer', kickapp.services.TimerService);
+    // Custom service that depends on timers
+    this.addService('my-service', MyService)
+        .dependsOn('timer');
+});
+
+// Custom service
+function MyService(app){
+    this.app = app;
+};
+
+MyService.prototype.start = function(){
+    // Get the 'timer' service
+    this.app.get('timer')
+        // beep every second :)
+        .setInterval(function(){
+            console.log('beep!');
+        }, 1000);
+};
+```
+
+When the application is started with `app.start()`, it starts its services.
+The custom service "my-service" sets a timer through the "timers" service.
+
+Now, when the application is stopped through `app.stop()`, the timers service will clear all timers that were set on it.
